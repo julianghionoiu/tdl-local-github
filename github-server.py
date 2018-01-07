@@ -1,6 +1,7 @@
 import time
 import BaseHTTPServer
 import os
+import re
 from urlparse import parse_qs
 import json
 import sys
@@ -16,24 +17,55 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         log_debug("[POST] Your request looks like: %s" % self)
         #content = convert_raw_http_request_data_to_string(self)
         #log_info("[POST] Body: %s" % content)
-        if (self.path.startswith('/api/v3/repos/')):
-            log_info("Creating repository")
+        self.data_json = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        if (self.path.startswith('/api/v3/user/repos')):
+            self.do_POST_user_repos()
 
     def do_GET(self):
         log_info("[GET] You accessed path: %s" % self.path)
         log_debug("[GET] Your request looks like: %s" % self)
         if (self.path.startswith('/api/v3/repos/')):
-            self.get_repo_data()
+            self.do_GET_repos()
 
-    def get_repo_data(self):
+    def do_GET_repos(self):
         print "Getting repo data"
-        self.send_response(200)
+        repo_name = re.search('\/api\/v3\/repos\/(\w+)\/(\w+)', '/api/v3/repos/user/repo').groups()[1]
+        git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name)
+
+        if (os.path.isdir(git_path)):
+            retval = os.system('git -C %s status' % git_path)
+            if (retval == 0):
+                self.end_headers()
+                self.send_response(200)
+                self.send_header('Content-type', 'text/json')
+                self.wfile.write(json.dumps({
+                    "id": "1234",
+                    "clone_url": "file://" + git_path
+                }))
+        self.send_response(400)
+        self.send_header('Content-type', 'text/json')
+
+    def do_POST_user_repos(self):
+        repo_name = self.data_json['name']
+        print "Creating repo: %s" % repo_name
+        git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name)
+        try:
+            os.makedirs(git_path)
+        except Exception as e:
+            pass
+        retval = os.system('git -C %s init' % git_path)
+        if (retval == 0):
+            self.send_response(200)
+            self.send_header('Content-type', 'text/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "id": "1234",
+                "clone_url": "file://" + git_path
+            }))
+            return
+        self.send_response(400)
         self.send_header('Content-type', 'text/json')
         self.end_headers()
-        self.wfile.write(json.dumps({
-            "id": "1234",
-            "clone_url": "file://" + os.path.abspath(GIT_REPOS_DIR)
-        }))
 
 def convert_raw_http_request_data_to_string(request):
     contentLength = int(request.headers.getheader('content-length'))
@@ -59,4 +91,3 @@ if __name__ == '__main__':
         pass
     httpd.server_close()
 log_info("Server Stops - %s:%s" % (HOST_NAME, PORT_NUMBER))
-
