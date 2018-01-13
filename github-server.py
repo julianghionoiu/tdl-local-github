@@ -29,9 +29,9 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET_repos(self):
         print "Getting repo data"
-        repo_name = re.search('\/api\/v3\/repos\/(\w+)\/(\w+)', '/api/v3/repos/user/repo').groups()[1]
+        repo_name = re.search('\/api\/v3\/repos\/(\w+)\/(\w+)', self.path).groups()[1]
         git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name)
-
+        print git_path;
         if (os.path.isdir(git_path)):
             retval = os.system('git -C %s status' % git_path)
             if (retval == 0):
