@@ -35,15 +35,17 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if (os.path.isdir(git_path)):
             retval = os.system('git -C %s status' % git_path)
             if (retval == 0):
-                self.end_headers()
                 self.send_response(200)
                 self.send_header('Content-type', 'text/json')
+                self.end_headers()
                 self.wfile.write(json.dumps({
                     "id": "1234",
                     "clone_url": "file://" + git_path
                 }))
+                return
         self.send_response(400)
         self.send_header('Content-type', 'text/json')
+        self.end_headers()
 
     def do_POST_user_repos(self):
         repo_name = self.data_json['name']
