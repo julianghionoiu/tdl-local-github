@@ -2,6 +2,7 @@ import time
 import BaseHTTPServer
 import os
 import re
+import time
 from urlparse import parse_qs
 import json
 import sys
@@ -15,9 +16,10 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(self):
         log_info("[POST] You accessed path: %s" % self.path)
         log_debug("[POST] Your request looks like: %s" % self)
+        body = self.rfile.read(int(self.headers['Content-Length']))
         #content = convert_raw_http_request_data_to_string(self)
-        #log_info("[POST] Body: %s" % content)
-        self.data_json = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        log_info("[POST] Body: %s" % body)
+        self.data_json = json.loads(body)
         if (self.path.startswith('/api/v3/user/repos')):
             self.do_POST_user_repos()
 
@@ -31,7 +33,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         print "Getting repo data"
         repo_name = re.search('\/api\/v3\/repos\/(\w+)\/(\w+)', self.path).groups()[1]
         git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name)
-        print git_path;
+        log_info("Git path: "  + git_path)
         if (os.path.isdir(git_path)):
             retval = os.system('git -C %s status' % git_path)
             if (retval == 0):
@@ -49,15 +51,16 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_POST_user_repos(self):
         repo_name = self.data_json['name']
-        print "Creating repo: %s" % repo_name
+        log_info("Creating repo: %s" % repo_name)
         git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name)
+        log_info("Git path: "  + git_path)
         try:
             os.makedirs(git_path)
         except Exception as e:
             pass
         retval = os.system('git -C %s init' % git_path)
         if (retval == 0):
-            self.send_response(200)
+            self.send_response(201)
             self.send_header('Content-type', 'text/json')
             self.end_headers()
             self.wfile.write(json.dumps({
