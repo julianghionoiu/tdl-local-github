@@ -42,7 +42,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET_repos(self):
         print "Getting repo data"
         repo_name = re.search('\/api\/v3\/repos\/(\w+)\/([\w-]+)', self.path).groups()[1]
-        git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name)
+        git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name +".git")
         log_info("Git path: " + git_path)
         if os.path.isdir(git_path):
             retval = os.system('git -C %s status' % git_path)
@@ -52,7 +52,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "id": "1234",
-                    "clone_url": "file://" + git_path
+                    "clone_url": "file://" + git_path,
+                    "html_url": "file://" + git_path.replace(".git", "")
                 }))
                 return
         else:
@@ -66,7 +67,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST_user_repos(self):
         repo_name = self.data_json['name']
         log_info("Creating repo: %s" % repo_name)
-        git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name)
+        git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name + ".git")
         log_info("Git path: " + git_path)
         try:
             os.makedirs(git_path)
@@ -87,7 +88,8 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({
                 "id": "1234",
-                "clone_url": "file://" + git_path
+                "clone_url": "file://" + git_path,
+                "html_url": "file://" + git_path.replace(".git", "")
             }))
             return
         self.send_error(400, "Not found")
