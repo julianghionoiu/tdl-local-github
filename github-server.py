@@ -1,4 +1,4 @@
-import BaseHTTPServer
+import http.server
 import json
 import os
 import re
@@ -11,7 +11,7 @@ PORT_NUMBER = 9556  # Maybe set this to 9000.
 GIT_REPOS_DIR = ""
 
 
-class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class MyHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         log_info("[POST] You accessed path: %s" % self.path)
         log_debug("[POST] Your request looks like: %s" % self)
@@ -40,7 +40,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             }))
 
     def do_GET_repos(self):
-        print "Getting repo data"
+        print("Getting repo data")
         repo_name = re.search('\/api\/v3\/repos\/(\w+)\/([\w-]+)', self.path).groups()[1]
         git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name +".git")
         log_info("Git path: " + git_path)
@@ -111,11 +111,11 @@ def log_info(message):
 
 
 def log(message):
-    print time.asctime(), message
+    print(time.asctime(), message)
 
 
 if __name__ == '__main__':
-    server_class = BaseHTTPServer.HTTPServer
+    server_class = http.server.HTTPServer
     httpd = server_class((HOST_NAME, PORT_NUMBER), MyHandler)
     GIT_REPOS_DIR = sys.argv[1]
     log_info("Server Starts - %s:%s" % (HOST_NAME, PORT_NUMBER))
