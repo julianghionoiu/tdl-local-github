@@ -98,7 +98,7 @@ class MyHandler(http.server.BaseHTTPRequestHandler):
 
 
 def convert_raw_http_request_data_to_string(request):
-    contentLength = int(request.headers.getheader('content-length'))
+    contentLength = int(request.headers.get_all('content-length'))
     return request.rfile.read(contentLength)
 
 
