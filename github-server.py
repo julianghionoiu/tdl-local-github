@@ -1,4 +1,4 @@
-import BaseHTTPServer
+import http.server
 import json
 import os
 import re
@@ -11,7 +11,7 @@ PORT_NUMBER = 9556  # Maybe set this to 9000.
 GIT_REPOS_DIR = ""
 
 
-class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class MyHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         log_info("[POST] You accessed path: %s" % self.path)
         log_debug("[POST] Your request looks like: %s" % self)
@@ -37,10 +37,10 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({
                 "message": "Unknown",
-            }))
+            }).encode("utf-8"))
 
     def do_GET_repos(self):
-        print "Getting repo data"
+        print("Getting repo data")
         repo_name = re.search('\/api\/v3\/repos\/(\w+)\/([\w-]+)', self.path).groups()[1]
         git_path = os.path.abspath(GIT_REPOS_DIR + "/" + repo_name +".git")
         log_info("Git path: " + git_path)
@@ -54,7 +54,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     "id": "1234",
                     "clone_url": "file://" + git_path,
                     "html_url": "file://" + git_path.replace(".git", "")
-                }))
+                }).encode("utf-8"))
                 return
         else:
             self.send_response(404)
@@ -62,7 +62,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({
                 "message": "Not found",
-            }))
+            }).encode("utf-8"))
 
     def do_POST_user_repos(self):
         repo_name = self.data_json['name']
@@ -76,7 +76,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(422, errorMessage)
             self.wfile.write(json.dumps({
                 "message": errorMessage,
-            }))
+            }).encode("utf-8"))
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             return
@@ -90,7 +90,7 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 "id": "1234",
                 "clone_url": "file://" + git_path,
                 "html_url": "file://" + git_path.replace(".git", "")
-            }))
+            }).encode("utf-8"))
             return
         self.send_error(400, "Not found")
         # self.send_header('Content-type', 'text/json')
@@ -98,9 +98,15 @@ class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 def convert_raw_http_request_data_to_string(request):
-    contentLength = int(request.headers.getheader('content-length'))
-    return request.rfile.read(contentLength)
+    raw_content_length = request.headers.get_all('content-length')
 
+    if raw_content_length is None:
+        content_length = 0
+    else:
+        content_length = int(raw_content_length[0])
+
+    bytes_read = request.rfile.read(content_length)
+    return bytes_read.decode("utf-8")
 
 def log_debug(message):
     log("[DEBUG] " + message)
@@ -111,11 +117,11 @@ def log_info(message):
 
 
 def log(message):
-    print time.asctime(), message
+    print(time.asctime(), message)
 
 
 if __name__ == '__main__':
-    server_class = BaseHTTPServer.HTTPServer
+    server_class = http.server.HTTPServer
     httpd = server_class((HOST_NAME, PORT_NUMBER), MyHandler)
     GIT_REPOS_DIR = sys.argv[1]
     log_info("Server Starts - %s:%s" % (HOST_NAME, PORT_NUMBER))
